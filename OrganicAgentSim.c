@@ -224,8 +224,8 @@ void UpdateAgents(struct Agent *AgentArray, struct Cell *CellArray)
         //if agent is outside boundery
         if ((AgentArray[i].PositionX > (double)(Width - 1) || AgentArray[i].PositionX < 0.0) || (AgentArray[i].PositionY > (double)(Height - 1) || AgentArray[i].PositionY < 0.0))
         {
-            AgentArray[i].PositionX = AgentArray[i].PositionX + sin(AgentArray[i].Rotation) * AgentVelocity;
-            AgentArray[i].PositionY = AgentArray[i].PositionY - cos(AgentArray[i].Rotation) * AgentVelocity;
+            AgentArray[i].PositionX = AgentArray[i].PositionX + cos(AgentArray[i].Rotation) * AgentVelocity;
+            AgentArray[i].PositionY = AgentArray[i].PositionY - sin(AgentArray[i].Rotation) * AgentVelocity;
             AgentArray[i].Rotation = ((double)rand() / (double)(RAND_MAX)) * 2.0 * M_PI;
         }
         struct Cell FullCell;
@@ -297,7 +297,7 @@ int main()
         printf("Uppdating Agents\n");
         UpdateAgents(AgentArray, CellArray);
 
-        sprintf(Name, "jpg/%03d.jpg", CurentStep);
+        sprintf(Name, "png/%03d.jpg", CurentStep);
         printf("Saving image\n");
         SavePng(CellArray, Name);
         strcat(Name, "\n");
