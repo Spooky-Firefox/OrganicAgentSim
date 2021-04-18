@@ -18,22 +18,42 @@ struct Agent
     double RotationSpeed;
 };
 
-//Declaring variables (if other setting is chosen in comand line these will be overwriten
+//Declaring variables
 const int Width = 1920;
 const int Height = 1080;
 const int Steps = 1000;
-const int AgentAmount = 1000;
+const int AgentAmount = 10000;
 int Disipate = 1;
 double RotationSpeedMult = 1.0f;
-double RandRotationSpeed = 0.1f;
-double AgentVelocity = 3.0f;       //one cell per step
-double SearchOffset = 0.785f;      //45 degres
+double RandRotationSpeed = 1.0f;
+double AgentVelocity = 5.0f; 
+double SearchOffset = 0.5f;
+double SearchDistans = 20.0f;
+int SearchSize = 2;
+
+
+
+int inttmp;      
 struct Cell *tmp;
-struct Cell SearchPos0 ;
-struct Cell SearchPos1 ;
-struct Cell SearchPos2 ;
+int SearchPos0 ;
+int SearchPos1 ;
+int SearchPos2 ;
 
 
+/*
+fuinction: returns the cell att the given position
+Arg 0(int x): the x position of the requsted cell
+Arg 1(int y): the y position of the requsted cell
+Arg 2(pointer to struct Cell Array): The Array of cells
+Arg 3(int Width): the width of the 2d array
+Arg 4(int Height): the height of the 2d array
+return(struct Cell): returns the struct cell att the given position
+inplace: Yes, no writing occurs
+Todo:
+Update:
+By: Olle Ronstad
+Date: 2021-04-18
+*/
 struct Cell GetCellAt(int x, int y, struct Cell *Array, int Width, int Height)
 {
     // if reqested cell is ouside boundery, return Cell with all valaus at int 0
@@ -47,6 +67,22 @@ struct Cell GetCellAt(int x, int y, struct Cell *Array, int Width, int Height)
     return Array[y * Width + x];
 };
 
+
+/*
+fuinction: replace the cell at the position with the given cell
+Arg 0(struct Cell): the cell to place att the given cordenets
+Arg 1(int x): the x position to place the given cell
+Arg 2(int y): the y position to place
+Arg 3(pointer to struct Cell Array):
+Arg 4(int Width): the width of the 2d array
+Arg 5(int Height): the height of the 2d array
+retunr(int):retuns 0 if the operation is sucesful, returns 1 of the reqested cell is outside the 2d array
+inplace: Yes
+Todo:
+Update:
+By: Olle Ronstad
+Date: 2021-04-18
+*/
 int SetCellValues(struct Cell CellValues, int x, int y, struct Cell *Array, int Width, int Height)
 {
     /* if reqested cell is ouside boundery, raise error */
@@ -59,6 +95,15 @@ int SetCellValues(struct Cell CellValues, int x, int y, struct Cell *Array, int 
     return 0;
 };
 
+/*
+fuinction: postions the agent in the middle with random rotation
+Arg 0(pointer to Struct Agent Array): the agents to position
+inplace: Yes
+Todo:
+Update:
+By: Olle Ronstad
+Date: 2021-04-18
+*/
 void PositionAgents(struct Agent *AgentArray)
 {
     /* Positining Agnt in the middle of the CellArray with random rotation */
@@ -71,6 +116,16 @@ void PositionAgents(struct Agent *AgentArray)
     };
 }
 
+/*
+fuinction: decriments each cells pheromne value, sets each cell to the avrage of the neiguring cells to emulate dispersion
+Arg 0(pointer to pointer to Struct Cell Array): the array with the Cells
+Arg 1(pointer to pointer to Struct Cell Array): Space for the changes, will swap pointer with arg 0
+inplace: Yes
+Todo:
+Update:
+By: Olle Ronstad
+Date: 2021-04-18
+*/
 void UpdateCells(struct Cell **CellArray, struct Cell **TmpCellArray)
 {
 
@@ -109,31 +164,65 @@ void UpdateCells(struct Cell **CellArray, struct Cell **TmpCellArray)
     *TmpCellArray = tmp;
 }
 
+/*
+fuinction: returns the summ of pheromne in a sqare around th given x and y position with the total zize of 2*Searchsize+1
+Arg 0(int x): the x position to place the given cell
+Arg 1(int y): the y position to place
+Arg 2(int SearchSize): the size of the area to search
+Arg 3(pointer to struct Cell Array): the array of cells to search
+inplace: Yes, no writing occurs
+Todo:
+Update:
+By: Olle Ronstad
+Date: 2021-04-18
+*/
+int SearchArea(int x, int y,int SearchSize, struct Cell *CellArray){
+    inttmp = 0;
+    for (int Width_i = x-SearchOffset; Width_i < x+SearchOffset; Width_i++)
+    {
+        for (int Height_i = y - SearchOffset; Height_i < y + 1; Height_i++)
+        {
+            inttmp = inttmp + GetCellAt(Width_i, Height_i, CellArray,Width,Height).Pheromone;
+        }
+    }
+    return inttmp;
+}
+
+/*
+fuinction:Uppadtes the Agents position, rotation and rotation speed. to make Agents follow Phermone, Writes a phermone value on each cell "under" the agents
+Arg 0(pointer to Struct Agent Array): the array of agents
+Arg 0(pointer to Struct Cell Array): the array of cells
+inplace: Yes
+Todo:
+Update:
+By: Olle Ronstad
+Date: 2021-04-18
+*/
 void UpdateAgents(struct Agent *AgentArray, struct Cell *CellArray)
 {
     /*run for each agent*/
     for (int i = 0; i < AgentAmount; i++)
     {
         //uppdating each agent's rotation, doing fmod to keep doubles precision
-        AgentArray[i].Rotation = (fmod((AgentArray[i].Rotation + AgentArray[i].RotationSpeed * RotationSpeedMult), (2 * M_PI)));
+        AgentArray[i].Rotation = (fmod((AgentArray[i].Rotation + AgentArray[i].RotationSpeed * RotationSpeedMult), (2.0 * M_PI)));
 
         //adding some random rotation speed to keep the agents from moving in a starigt line
         AgentArray[i].RotationSpeed = ((double)rand() / (double)(RAND_MAX)-0.5) * RandRotationSpeed;
 
         //get cells att search positions 
-        SearchPos0 = GetCellAt((int)(AgentArray[i].PositionX+(cos(AgentArray[i].Rotation + SearchOffset))),(int)(AgentArray[i].PositionY-sin(AgentArray[i].Rotation + SearchOffset)),CellArray, Width, Height);
-        SearchPos1 = GetCellAt((int)(AgentArray[i].PositionX+(cos(AgentArray[i].Rotation))),(int)(AgentArray[i].PositionY-sin(AgentArray[i].Rotation)),CellArray, Width, Height);
-        SearchPos0 = GetCellAt((int)(AgentArray[i].PositionX+(cos(AgentArray[i].Rotation - SearchOffset))),(int)(AgentArray[i].PositionY-sin(AgentArray[i].Rotation - SearchOffset)),CellArray, Width, Height);
+        SearchPos0 = SearchArea((int)(AgentArray[i].PositionX+(cos(AgentArray[i].Rotation + SearchOffset)*SearchDistans)),(int)(AgentArray[i].PositionY-sin(AgentArray[i].Rotation + SearchOffset)*SearchDistans),SearchSize,CellArray);
+        SearchPos1 = SearchArea((int)(AgentArray[i].PositionX+(cos(AgentArray[i].Rotation)*SearchDistans)),(int)(AgentArray[i].PositionY-sin(AgentArray[i].Rotation)*SearchDistans),SearchSize,CellArray);
+        SearchPos2 = SearchArea((int)(AgentArray[i].PositionX+(cos(AgentArray[i].Rotation - SearchOffset)*SearchDistans)),(int)(AgentArray[i].PositionY-sin(AgentArray[i].Rotation - SearchOffset)*SearchDistans),SearchSize,CellArray);
 
         // determine if a trun is necsecary
-        if (!(SearchPos1.Pheromone > SearchPos0.Pheromone)&&!(SearchPos0.Pheromone > SearchPos2.Pheromone))
+        if (!(SearchPos1 > SearchPos0) && !(SearchPos1 > SearchPos2))
         {
             //trun in direction of largest phermone value
-            if (SearchPos0.Pheromone > SearchPos2.Pheromone)
+            if (SearchPos0 > SearchPos2)
             {
                 AgentArray[i].RotationSpeed = AgentArray[i].RotationSpeed + RotationSpeedMult;
             }
-            if (SearchPos0.Pheromone < SearchPos2.Pheromone)
+            if (SearchPos0 < SearchPos2)
             {
                 AgentArray[i].RotationSpeed = AgentArray[i].RotationSpeed - RotationSpeedMult;
             }
@@ -158,21 +247,30 @@ void UpdateAgents(struct Agent *AgentArray, struct Cell *CellArray)
     //printf("Rotation %f\nPosX %f\nPosY %f\n\n",AgentArray[AgentAmount-1].Rotation ,AgentArray[AgentAmount-1].PositionX,AgentArray[AgentAmount-1].PositionY);
 }
 
+/*
+fuinction: generates an 3d array[width][height][colour] of bytes(char) representing colour of an image, uses LodePNG (zlib licence)
+Arg 0(pointer to Struct Agent Array): the cell array to save as png
+Todo: make aheatmap insted of only writing one value
+Update:
+By: Olle Ronstad
+Date: 2021-04-18
+*/
 void SavePng(struct Cell *CellArray, char *Name){
     unsigned char* image = malloc(Width * Height * 4);
     for(int y = 0; y < Height; y++) {
         for(int x = 0; x < Width; x++) {
-            image[4 * Width * y + 4 * x + 0] = GetCellAt(x,y,CellArray,Width,Height).Pheromone;
+            image[4 * Width * y + 4 * x + 0] = 0;
             image[4 * Width * y + 4 * x + 1] = 0;
-            image[4 * Width * y + 4 * x + 2] = 0;
+            image[4 * Width * y + 4 * x + 2] = GetCellAt(x,y,CellArray,Width,Height).Pheromone;
             image[4 * Width * y + 4 * x + 3] = 255;
         }
     }
     lodepng_encode32_file(Name,image,Width,Height);
 }
+
 int main()
 {
-    srand(10U);
+    srand(16U);
 
     /* initialize "Array" of struct Cell
     useing calloc instead of "struct Cell CellArray[1920][1080];" to avoid stack overflowing
@@ -198,17 +296,20 @@ int main()
 
     for (int CurentStep = 0; CurentStep < Steps; CurentStep++)
     {
-        //printf("calculating step %i \n", CurentStep);
-
+        printf("Calculating step %i \n", CurentStep);
+        printf("Uppdaing Cells\n");
         UpdateCells(&CellArray, &TmpCellArray);
-
+        printf("Uppdating Agents\n");
         UpdateAgents(AgentArray, CellArray);
         
         sprintf(Name,"jpg/%03d.jpg",CurentStep);
+        printf("Saving image\n");
         SavePng(CellArray,Name);
+        strcat(Name, "\n");
+        printf(Name);
     };
     
-    printf("done");
+    printf("Done");
     free(CellArray);
     free(TmpCellArray);
     return 0;
